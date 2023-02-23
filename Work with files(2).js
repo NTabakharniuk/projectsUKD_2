@@ -1,105 +1,114 @@
-//1)
+//Створити програму, яка дозволить керувати списком покупок і зберігати його у csv файл.
+//1)﻿﻿Функція для додавання продуктів у список (csv файл)
 
-const fs = require('fs');
-const csv = require('csv-parser');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const prompt = require('prompt-sync')();
 
 const csvWriter = createCsvWriter({
-  path: 'shopping_list.csv',
-  header: [
-    { id: 'item', title: 'Item' },
-    { id: 'quantity', title: 'Quantity' },
-  ],
+    path: 'shopping-list.csv',
+    header: [
+        {id: 'id', title: 'ID'},
+        {id: 'name', title: 'Назва'},
+        {id: 'quantity', title: 'Кількість'},
+        {id: 'price', title: 'Ціна'}
+    ]
 });
 
 let shoppingList = [];
 
-function addItem() {
-  const item = prompt('Enter item name: ');
-  const quantity = prompt('Enter quantity: ');
+function addProduct(name, quantity, price) {
+    const id = shoppingList.length + 1;
+    shoppingList.push({ id, name, quantity, price });
 
-  const newItem = {
-    item: item,
-    quantity: quantity,
-  };
-
-  shoppingList.push(newItem);
+    csvWriter.writeRecords(shoppingList)
+        .then(() => console.log('Продукт додано до списку.'))
+        .catch(() => console.log('Помилка збереження у файл.'));
 }
 
-function removeItem() {
-  const index = prompt('Enter index of item to remove: ');
-  shoppingList.splice(index, 1);
-}
 
-function printList() {
-  console.log('Shopping List:');
-  console.log('--------------');
+//2)﻿﻿Функція для отримання даних про продукт за його унікальним ідентифікатором
 
-  shoppingList.forEach((item, index) => {
-    console.log(`${index}: ${item.item} (${item.quantity})`);
-  });
-}
+const csv = require('csv-parser');
+const fs = require('fs');
 
-function saveList() {
-  csvWriter.writeRecords(shoppingList).then(() => {
-    console.log('Shopping list has been saved to shopping_list.csv');
-  });
-}
+function getProductById(id) {
+  let product = null;
 
-function loadList() {
-  shoppingList = [];
-
-  fs.createReadStream('shopping_list.csv')
+  fs.createReadStream('shopping-list.csv')
     .pipe(csv())
-    .on('data', (row) => {
-      shoppingList.push(row);
+    .on('data', (data) => {
+      if (data.id == id) {
+        product = data;
+      }
     })
     .on('end', () => {
-      console.log('Shopping list has been loaded from shopping_list.csv');
+      if (product) {
+        console.log(product);
+      } else {
+        console.log('Продукт з таким ID не знайдено.');
+      }
     });
 }
 
-function showMenu() {
-  console.log('');
-  console.log('Select an action:');
-  console.log('1. Add item');
-  console.log('2. Remove item');
-  console.log('3. Print list');
-  console.log('4. Save list');
-  console.log('5. Load list');
-  console.log('6. Exit');
-  console.log('');
 
-  const choice = prompt('Enter choice: ');
+//3)﻿﻿Функція для видалення продукту зі списку (csv файлу) за його унікальним ідентифікатором
 
-  switch (choice) {
-    case '1':
-      addItem();
-      break;
-    case '2':
-      removeItem();
-      break;
-    case '3':
-      printList();
-      break;
-    case '4':
-      saveList();
-      break;
-    case '5':
-      loadList();
-      break;
-    case '6':
-      console.log('Goodbye!');
-      return;
-    default:
-      console.log('Invalid choice');
-  }
+const csv = require('csv-parser');
+const fs = require('fs');
+const { Transform } = require('stream');
 
-  showMenu();
+function deleteProductById(id) {
+  const readStream = fs.createReadStream('shopping-list.csv');
+  const writeStream = fs.createWriteStream('temp.csv');
+
+  readStream
+    .pipe(csv())
+    .pipe(new Transform({
+      objectMode: true,
+      transform: function (data, _, cb) {
+        if (data.id !== id) {
+          this.push(data);
+        }
+        cb();
+      }
+    }))
+    .pipe(writeStream);
+
+  writeStream.on('finish', () => {
+    fs.renameSync('temp.csv', 'shopping-list.csv');
+    console.log(`Продукт з ID ${id} успішно видалено.`);
+  });
 }
 
-showMenu();
 
+//4)﻿﻿Функція для зміни продукту за його унікальним ідентифікатором
 
-//2)
+const csv = require('csv-parser');
+const fs = require('fs');
+const { Transform } = require('stream');
+
+function updateProductById(id, newProductData) {
+  const readStream = fs.createReadStream('shopping-list.csv');
+  const writeStream = fs.createWriteStream('temp.csv');
+
+  readStream
+    .pipe(csv())
+    .pipe(new Transform({
+      objectMode: true,
+      transform: function (data, _, cb) {
+        if (data.id === id) {
+          data.name = newProductData.name || data.name;
+          data.quantity = newProductData.quantity || data.quantity;
+          data.price = newProductData.price || data.price;
+        }
+        this.push(data);
+        cb();
+      }
+    }))
+    .pipe(writeStream);
+
+  writeStream.on('finish', () => {
+    fs.renameSync('temp.csv', 'shopping-list.csv');
+    console.log(`Продукт з ID ${id} успішно оновлено.`);
+  });
+}
+
