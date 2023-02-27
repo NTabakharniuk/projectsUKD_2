@@ -1,114 +1,68 @@
-//Створити програму, яка дозволить керувати списком покупок і зберігати його у csv файл.
-//1)﻿﻿Функція для додавання продуктів у список (csv файл)
+const fs = require ('fs')
+const arr = []
 
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
-const csvWriter = createCsvWriter({
-    path: 'shopping-list.csv',
-    header: [
-        {id: 'id', title: 'ID'},
-        {id: 'name', title: 'Назва'},
-        {id: 'quantity', title: 'Кількість'},
-        {id: 'price', title: 'Ціна'}
-    ]
-});
+//1 ЗАпис даних
+ pushInArr(arr,'mercedes-benz','g500','red',2019)
+ pushInArr(arr,'deo','matiz','blue',2000)
 
-let shoppingList = [];
 
-function addProduct(name, quantity, price) {
-    const id = shoppingList.length + 1;
-    shoppingList.push({ id, name, quantity, price });
+ // 2 Отримати дані по айді
+verify(0)
+verify(1)
 
-    csvWriter.writeRecords(shoppingList)
-        .then(() => console.log('Продукт додано до списку.'))
-        .catch(() => console.log('Помилка збереження у файл.'));
+ 
+ //3 видалення по айд
+dell(1)
+ 
+ //4 зміна по айді
+change(0,'BMW','530', 'red', 234567)
+
+
+
+ //запис
+function write(arr){
+    fs.writeFileSync('./car.csv', JSON.stringify(arr), 'utf-8');
 }
 
-
-//2)﻿﻿Функція для отримання даних про продукт за його унікальним ідентифікатором
-
-const csv = require('csv-parser');
-const fs = require('fs');
-
-function getProductById(id) {
-  let product = null;
-
-  fs.createReadStream('shopping-list.csv')
-    .pipe(csv())
-    .on('data', (data) => {
-      if (data.id == id) {
-        product = data;
-      }
-    })
-    .on('end', () => {
-      if (product) {
-        console.log(product);
-      } else {
-        console.log('Продукт з таким ID не знайдено.');
-      }
-    });
+//Запис даних
+function pushInArr (arr, name1, model1, color1, year1){
+    arr.push({id: arr.length, Name : name1 , Model : model1 , Color : color1, Year : year1 })
+    return arr && write(arr)
 }
 
-
-//3)﻿﻿Функція для видалення продукту зі списку (csv файлу) за його унікальним ідентифікатором
-
-const csv = require('csv-parser');
-const fs = require('fs');
-const { Transform } = require('stream');
-
-function deleteProductById(id) {
-  const readStream = fs.createReadStream('shopping-list.csv');
-  const writeStream = fs.createWriteStream('temp.csv');
-
-  readStream
-    .pipe(csv())
-    .pipe(new Transform({
-      objectMode: true,
-      transform: function (data, _, cb) {
-        if (data.id !== id) {
-          this.push(data);
+//Отримати дані по айді
+function verify(id1){
+    fs.readFile('./car.csv', 'utf-8', (err,data)=>{
+        const a = JSON.parse(data)
+    for(let i = 0; i<a.length; i++){
+let temp = a[i].id
+let temp1 = a[id1]
+        if(temp === id1){
+        console.log(temp1)
         }
-        cb();
-      }
-    }))
-    .pipe(writeStream);
-
-  writeStream.on('finish', () => {
-    fs.renameSync('temp.csv', 'shopping-list.csv');
-    console.log(`Продукт з ID ${id} успішно видалено.`);
-  });
+    }
+})
 }
 
+//Видалення по айді
+function dell(id){
+    fs.readFile('./car.csv', 'utf-8', (err,data)=>{
+        const a = JSON.parse(data)
+        delete a[id]
+        fs.writeFileSync('./car.csv', JSON.stringify(a), 'utf-8');
 
-//4)﻿﻿Функція для зміни продукту за його унікальним ідентифікатором
-
-const csv = require('csv-parser');
-const fs = require('fs');
-const { Transform } = require('stream');
-
-function updateProductById(id, newProductData) {
-  const readStream = fs.createReadStream('shopping-list.csv');
-  const writeStream = fs.createWriteStream('temp.csv');
-
-  readStream
-    .pipe(csv())
-    .pipe(new Transform({
-      objectMode: true,
-      transform: function (data, _, cb) {
-        if (data.id === id) {
-          data.name = newProductData.name || data.name;
-          data.quantity = newProductData.quantity || data.quantity;
-          data.price = newProductData.price || data.price;
-        }
-        this.push(data);
-        cb();
-      }
-    }))
-    .pipe(writeStream);
-
-  writeStream.on('finish', () => {
-    fs.renameSync('temp.csv', 'shopping-list.csv');
-    console.log(`Продукт з ID ${id} успішно оновлено.`);
-  });
+})
 }
 
+//Перезиписування по айді
+function change(id, name1, model1, color1, year1){
+    fs.readFile('./car.csv', 'utf-8', (err,data)=>{
+        const a = JSON.parse(data)
+a[id].Name = name1
+a[id].Model = model1
+a[id].Color = color1
+a[id].Year = year1
+    fs.writeFileSync('./car.csv', JSON.stringify(a), 'utf-8');  
+})
+}
